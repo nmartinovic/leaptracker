@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack --yes 2>&1)",
+      "Bash(rsync -av --exclude='.git' --exclude='.next' /tmp/leaptracker-scaffold/ /Users/nickmartinovic/Documents/leaptracker/ 2>&1)",
+      "Bash(mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/api/options/\\\\[id\\\\] && mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/api/portfolios/\\\\[id\\\\]/holdings && mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/api/cron/fetch-prices)",
+      "Bash(mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/options/\\\\[id\\\\] && mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/portfolios/\\\\[id\\\\])"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+name: Daily Price Fetch
+
+on:
+  schedule:
+    # 22:15 UTC = 5:15 PM EST / 6:15 PM EDT — after market close year-round
+    - cron: '15 22 * * 1-5'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  fetch-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cron endpoint
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://${{ secrets.VERCEL_DOMAIN }}/api/cron/fetch-prices)
+          echo "HTTP status: $response"
+          if [ "$response" != "200" ]; then
+            echo "Cron endpoint returned non-200 status: $response"
+            exit 1
+          fi
