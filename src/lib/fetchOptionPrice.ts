@@ -37,10 +37,21 @@ export async function fetchOptionPrice(yahooSymbol: string): Promise<OptionPrice
     const q = quote as any
     const bid: number = q.bid ?? 0
     const ask: number = q.ask ?? 0
+    const lastPrice: number = q.regularMarketPrice ?? 0
 
-    // Do not store $0 prices — option may be illiquid or not tracked by Yahoo
-    if (bid === 0 || ask === 0) {
-      console.warn(`[fetchOptionPrice] Zero bid or ask for ${yahooSymbol} — skipping`)
+    // If both bid and ask are 0 (common for illiquid LEAPS early in the trading day),
+    // fall back to the last traded price as both bid and ask.
+    if (bid === 0 && ask === 0) {
+      if (lastPrice > 0) {
+        console.warn(`[fetchOptionPrice] Zero bid/ask for ${yahooSymbol} — using last price ${lastPrice} as fallback`)
+        return {
+          yahoo_symbol: yahooSymbol,
+          bid: lastPrice,
+          ask: lastPrice,
+          midpoint: lastPrice,
+        }
+      }
+      console.warn(`[fetchOptionPrice] No price data for ${yahooSymbol} — skipping`)
       return null
     }
 
