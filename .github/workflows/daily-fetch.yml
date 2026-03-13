@@ -2,8 +2,8 @@ name: Daily Price Fetch
 
 on:
   schedule:
-    # 22:15 UTC = 5:15 PM EST / 6:15 PM EDT — after market close year-round
-    - cron: '15 22 * * 1-5'
+    # 19:30 UTC = 3:30 PM EST (winter) / 2:30 PM EDT (summer) — during market hours year-round
+    - cron: '30 19 * * 1-5'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/fetch-prices",
-      "schedule": "15 22 * * 1-5"
+      "schedule": "30 19 * * 1-5"
     }
   ]
 }
