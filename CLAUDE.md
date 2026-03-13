@@ -90,8 +90,29 @@ SUPABASE_SERVICE_ROLE_KEY=       # server-only; never expose to browser
 CRON_SECRET=                     # any random string; must match Vercel + GitHub Actions secrets
 ```
 
+## Deployment
+
+- **Production:** https://leaptracker.vercel.app
+- **Supabase project:** `hfncowvbjoaknpouivzm` (region: us-east-1)
+- **GitHub repo:** https://github.com/nmartinovic/leaptracker
+- Vercel is connected to the GitHub repo — pushing to `main` triggers a redeploy automatically
+- Vercel Cron runs `/api/cron/fetch-prices` at 22:15 UTC (10:15 PM ET) weekdays
+- GitHub Actions `.github/workflows/daily-fetch.yml` is a fallback cron — requires `CRON_SECRET` and `VERCEL_DOMAIN` secrets set in the repo
+
 ## Supabase Setup
 
-1. Run `supabase/migrations/0001_initial_schema.sql` in the Supabase SQL editor
-2. Regenerate types after any schema change: `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts`
-   - After regenerating, remove the `as any` cast in `createAdminClient()` in `src/lib/supabase.ts`
+- Schema is already applied to the production Supabase project
+- To apply to a new project: run `supabase/migrations/0001_initial_schema.sql` in the SQL editor
+- Regenerate types after any schema change: `npx supabase gen types typescript --project-id hfncowvbjoaknpouivzm > src/lib/database.types.ts`
+  - After regenerating, remove the `as any` cast in `createAdminClient()` in `src/lib/supabase.ts`
+
+## Known Gotchas
+
+- **Node.js version:** Must use v20+ locally (`nvm use 20`). Vercel is configured to use Node 22 via `engines` in `package.json` — required by `yahoo-finance2` v3.
+- **`yahoo-finance2` v3 API change:** v3 requires instantiation — `new (YahooFinanceClass as any)({ suppressNotices: ['yahooSurvey'] })`. The old v2 default-export call pattern silently fails. See `src/lib/fetchOptionPrice.ts`.
+- **LEAPS bid/ask are often $0:** After market close and early in the trading day, lightly traded LEAPS frequently have `bid=0, ask=0`. The cron runs at 19:30 UTC (3:30 PM ET, during market hours) to maximise the chance of real quotes. When bid/ask are still both $0, the code falls back to `regularMarketPrice` (last traded price) rather than skipping entirely.
+- **`createAdminClient()` returns `any`** because `database.types.ts` is a hand-written stub. All query results need explicit type casts (e.g. `const option = data as TrackedOption`). This goes away once you regenerate types from Supabase.
+- **Not all OCC symbols exist on Yahoo Finance.** A symbol can parse correctly but return `undefined` from Yahoo (e.g. non-existent contracts). The fetch returns `null` and no price row is written — this is expected.
+- **Supabase UI labels:** The API keys section is "API Keys" (not "API"), with "publishable key" (= anon key) and "secret key" (= service_role key). Project URL is under Settings → General.
+- **`create-next-app` won't run in a non-empty directory** — scaffold in a temp dir and rsync files over if needed.
+- **Recharts `Tooltip` formatter** must accept `(value: ValueType, name: NameType)` — typing as `(value: number, name: string)` causes a TypeScript build error.
