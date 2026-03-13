@@ -1,4 +1,9 @@
-import yahooFinance from 'yahoo-finance2'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import YahooFinanceClass from 'yahoo-finance2'
+
+// yahoo-finance2 v3 requires instantiation
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const yf = new (YahooFinanceClass as any)({ suppressNotices: ['yahooSurvey'] })
 
 export interface OptionPriceResult {
   yahoo_symbol: string
@@ -16,21 +21,24 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
       await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1000))
     }
   }
-  // unreachable but satisfies TypeScript
   throw new Error('Retry failed')
 }
 
 export async function fetchOptionPrice(yahooSymbol: string): Promise<OptionPriceResult | null> {
   try {
-    const quote = await withRetry(() =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      yahooFinance.quote(yahooSymbol, { fields: ['bid', 'ask', 'regularMarketPrice'] }) as Promise<any>
-    )
+    const quote = await withRetry(() => yf.quote(yahooSymbol) as Promise<unknown>)
 
-    const bid: number = quote.bid ?? 0
-    const ask: number = quote.ask ?? 0
+    if (!quote || typeof quote !== 'object') {
+      console.warn(`[fetchOptionPrice] No data returned for ${yahooSymbol}`)
+      return null
+    }
 
-    // Do not store $0 prices — option may be illiquid
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const q = quote as any
+    const bid: number = q.bid ?? 0
+    const ask: number = q.ask ?? 0
+
+    // Do not store $0 prices — option may be illiquid or not tracked by Yahoo
     if (bid === 0 || ask === 0) {
       console.warn(`[fetchOptionPrice] Zero bid or ask for ${yahooSymbol} — skipping`)
       return null
@@ -50,9 +58,9 @@ export async function fetchOptionPrice(yahooSymbol: string): Promise<OptionPrice
 
 export async function fetchSpyPrice(): Promise<number | null> {
   try {
+    const quote = await withRetry(() => yf.quote('SPY') as Promise<unknown>)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const quote = await withRetry(() => yahooFinance.quote('SPY', { fields: ['regularMarketPrice'] }) as Promise<any>)
-    return (quote.regularMarketPrice as number | undefined) ?? null
+    return ((quote as any)?.regularMarketPrice as number | undefined) ?? null
   } catch (err) {
     console.error('[fetchSpyPrice] Failed to fetch SPY price:', err)
     return null
