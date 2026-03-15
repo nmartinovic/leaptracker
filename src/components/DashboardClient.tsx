@@ -38,6 +38,15 @@ export function DashboardClient({ options, allTags }: DashboardClientProps) {
   const [sortKey, setSortKey] = useState<keyof OptionRow>('entry_date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [showInactive, setShowInactive] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? This will remove all price history and cannot be undone.`)) return
+    setDeletingId(id)
+    await fetch(`/api/options/${id}`, { method: 'DELETE' })
+    setDeletingId(null)
+    router.refresh()
+  }
 
   function handleSort(key: keyof OptionRow) {
     if (sortKey === key) {
@@ -174,10 +183,17 @@ export function DashboardClient({ options, allTags }: DashboardClientProps) {
                   </td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(opt.entry_date)}</td>
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(opt.expiration_date)}</td>
-                  <td className="px-4 py-3 text-right">
-                    <Link href={`/options/${opt.id}`} className="text-xs text-blue-600 hover:underline">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <Link href={`/options/${opt.id}`} className="text-xs text-blue-600 hover:underline mr-3">
                       Details →
                     </Link>
+                    <button
+                      onClick={() => handleDelete(opt.id, formatContractName(opt))}
+                      disabled={deletingId === opt.id}
+                      className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40"
+                    >
+                      {deletingId === opt.id ? '…' : 'Delete'}
+                    </button>
                   </td>
                 </tr>
               ))}

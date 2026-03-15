@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase'
 import type { TrackedOption, PriceHistory } from '@/lib/database.types'
 import { PerformanceChart } from '@/components/charts/PerformanceChart'
+import { DeleteOptionButton } from '@/components/DeleteOptionButton'
 import { Badge } from '@/components/ui/Badge'
 import { PercentChange } from '@/components/ui/PercentChange'
 import {
@@ -78,11 +79,14 @@ export default async function OptionDetailPage({
             </div>
           )}
         </div>
-        {!option.is_active && (
-          <span className="rounded-full bg-gray-100 text-gray-500 text-xs px-3 py-1 font-medium">
-            Archived
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {!option.is_active && (
+            <span className="rounded-full bg-gray-100 text-gray-500 text-xs px-3 py-1 font-medium">
+              Archived
+            </span>
+          )}
+          <DeleteOptionButton id={option.id} name={contractName} />
+        </div>
       </div>
 
       {/* Summary cards */}
