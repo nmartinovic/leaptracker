@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
       entry_date: today,
       spy_price_at_entry: spyPrice ?? undefined,
       tags: ['auto'],
+      entry_price_pending: leap.price_is_estimated,
     })
     .select()
     .single()

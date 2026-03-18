@@ -3,7 +3,7 @@ import { createAdminClient } from './supabase'
 import { fetchOptionPrice, fetchSpyPrice } from './fetchOptionPrice'
 import { isTradingDay } from './marketHolidays'
 
-type ActiveOption = { id: string; yahoo_symbol: string; expiration_date: string }
+type ActiveOption = { id: string; yahoo_symbol: string; expiration_date: string; entry_price_pending: boolean }
 
 export interface CronResult {
   date: string
@@ -36,7 +36,7 @@ export async function cronFetchPrices(): Promise<CronResult> {
   // Fetch all active options
   const { data: options, error: fetchError } = await db
     .from('tracked_options')
-    .select('id, yahoo_symbol, expiration_date')
+    .select('id, yahoo_symbol, expiration_date, entry_price_pending')
     .eq('is_active', true)
 
   if (fetchError) {
@@ -103,8 +103,18 @@ export async function cronFetchPrices(): Promise<CronResult> {
       if (insertError) {
         result.errors.push(`Failed to insert price for ${option.yahoo_symbol}: ${insertError.message}`)
         result.skipped++
-      } else {
-        result.fetched++
+        return
+      }
+
+      result.fetched++
+
+      // If entry_price was a placeholder (added outside market hours), backfill with live midpoint
+      if (option.entry_price_pending) {
+        await db
+          .from('tracked_options')
+          .update({ entry_price: price.midpoint, entry_price_pending: false })
+          .eq('id', option.id)
+        console.log(`[cron] Backfilled entry_price for ${option.yahoo_symbol}: ${price.midpoint}`)
       }
     })
   )

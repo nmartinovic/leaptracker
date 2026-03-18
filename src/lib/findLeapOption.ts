@@ -14,6 +14,8 @@ export interface FoundLeapOption extends ParsedOptionSymbol {
   midpoint: number
   days_to_expiry: number
   current_stock_price: number
+  /** true when bid/ask were both 0 and we fell back to last-traded price (market closed) */
+  price_is_estimated: boolean
 }
 
 export async function findLeapCallOption(ticker: string): Promise<FoundLeapOption> {
@@ -71,12 +73,13 @@ export async function findLeapCallOption(ticker: string): Promise<FoundLeapOptio
   // 6. Parse the OCC contract symbol
   const parsed = parseYahooOptionUrl(atm.contractSymbol)
 
-  // 7. Compute bid/ask (fall back to lastPrice if both are 0)
+  // 7. Compute bid/ask (fall back to lastPrice if both are 0 — market closed)
   const bid: number = atm.bid ?? 0
   const ask: number = atm.ask ?? 0
   const lastPrice: number = atm.lastPrice ?? 0
-  const effectiveBid = bid === 0 && ask === 0 ? lastPrice : bid
-  const effectiveAsk = bid === 0 && ask === 0 ? lastPrice : ask
+  const marketClosed = bid === 0 && ask === 0
+  const effectiveBid = marketClosed ? lastPrice : bid
+  const effectiveAsk = marketClosed ? lastPrice : ask
   const midpoint = (effectiveBid + effectiveAsk) / 2
 
   if (midpoint <= 0) {
@@ -93,5 +96,6 @@ export async function findLeapCallOption(ticker: string): Promise<FoundLeapOptio
     midpoint,
     days_to_expiry,
     current_stock_price: currentPrice,
+    price_is_estimated: marketClosed,
   }
 }

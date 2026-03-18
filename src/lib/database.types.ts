@@ -18,6 +18,7 @@ export type Database = {
           spy_price_at_entry: number | null
           tags: string[]
           is_active: boolean
+          entry_price_pending: boolean
           created_at: string
         }
         Insert: {
@@ -32,6 +33,7 @@ export type Database = {
           spy_price_at_entry?: number | null
           tags?: string[]
           is_active?: boolean
+          entry_price_pending?: boolean
           created_at?: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           spy_price_at_entry?: number | null
           tags?: string[]
           is_active?: boolean
+          entry_price_pending?: boolean
           created_at?: string
         }
       }
