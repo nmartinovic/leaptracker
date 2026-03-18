@@ -4,7 +4,20 @@
       "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack --yes 2>&1)",
       "Bash(rsync -av --exclude='.git' --exclude='.next' /tmp/leaptracker-scaffold/ /Users/nickmartinovic/Documents/leaptracker/ 2>&1)",
       "Bash(mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/api/options/\\\\[id\\\\] && mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/api/portfolios/\\\\[id\\\\]/holdings && mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/api/cron/fetch-prices)",
-      "Bash(mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/options/\\\\[id\\\\] && mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/portfolios/\\\\[id\\\\])"
+      "Bash(mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/options/\\\\[id\\\\] && mkdir -p /Users/nickmartinovic/Documents/leaptracker/src/app/portfolios/\\\\[id\\\\])",
+      "Bash(openssl rand:*)",
+      "Bash(sleep 8 && curl -s http://localhost:3000/api/options)",
+      "Bash(curl -s https://leaptracker.vercel.app/api/options)",
+      "Bash(curl -s https://leaptracker.vercel.app/api/options | python3 -m json.tool)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(curl -s -X POST https://leaptracker.vercel.app/api/cron/fetch-prices \\\\\n  -H \"Authorization: Bearer 8dca86a3c5debbbda96d2eb1002edf538fa5c9ea50d309180dd50a6bf6587e00\" | python3 -m json.tool)",
+      "Bash(curl -s https://leaptracker.vercel.app/api/options | python3 -c \"\nimport json, sys\ndata = json.load\\(sys.stdin\\)\nfor o in data:\n    print\\('symbol:', o['yahoo_symbol']\\)\n    print\\('current_midpoint:', o['current_midpoint']\\)\n    print\\('spy_pct_change:', o['spy_pct_change']\\)\n    print\\('option_pct_change:', o['option_pct_change']\\)\n\")",
+      "Bash(npm run:*)",
+      "Bash(source:*)",
+      "Bash(claude doctor:*)",
+      "Bash(. \"$HOME/.nvm/nvm.sh\" 2>/dev/null; nvm use 20 2>/dev/null; node --version && npm run build 2>&1 || true)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
