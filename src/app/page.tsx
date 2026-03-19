@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase'
 import { DashboardClient } from '@/components/DashboardClient'
+import { fetchStockPrice } from '@/lib/fetchOptionPrice'
 import type { TrackedOption } from '@/lib/database.types'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,13 @@ export default async function DashboardPage() {
 
   const options = (optionsRaw ?? []) as OptionWithHistory[]
 
+  // Fetch current stock prices for all unique tickers in parallel
+  const uniqueTickers = Array.from(new Set(options.map((o) => o.ticker)))
+  const stockPriceEntries = await Promise.all(
+    uniqueTickers.map(async (ticker) => [ticker, await fetchStockPrice(ticker)] as const)
+  )
+  const stockPrices = Object.fromEntries(stockPriceEntries)
+
   const rows = options.map((opt) => {
     const history = opt.price_history ?? []
     const latest = history.sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
@@ -43,6 +51,12 @@ export default async function DashboardPage() {
         ? optionPctChange - spyPctChange
         : null
 
+    const stockPrice = stockPrices[opt.ticker] ?? null
+    const moneyness =
+      stockPrice != null
+        ? ((stockPrice - opt.strike_price) / opt.strike_price) * 100
+        : null
+
     return {
       id: opt.id,
       ticker: opt.ticker,
@@ -57,6 +71,8 @@ export default async function DashboardPage() {
       option_pct_change: optionPctChange,
       spy_pct_change: spyPctChange,
       alpha,
+      stock_price: stockPrice,
+      moneyness,
     }
   })
 

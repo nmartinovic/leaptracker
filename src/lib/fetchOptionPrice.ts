@@ -68,12 +68,16 @@ export async function fetchOptionPrice(yahooSymbol: string): Promise<OptionPrice
 }
 
 export async function fetchSpyPrice(): Promise<number | null> {
+  return fetchStockPrice('SPY')
+}
+
+export async function fetchStockPrice(ticker: string): Promise<number | null> {
   try {
-    const quote = await withRetry(() => yf.quote('SPY') as Promise<unknown>)
+    const quote = await withRetry(() => yf.quote(ticker) as Promise<unknown>)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return ((quote as any)?.regularMarketPrice as number | undefined) ?? null
   } catch (err) {
-    console.error('[fetchSpyPrice] Failed to fetch SPY price:', err)
+    console.error(`[fetchStockPrice] Failed to fetch ${ticker}:`, err)
     return null
   }
 }

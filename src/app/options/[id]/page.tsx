@@ -6,6 +6,7 @@ import { PerformanceChart } from '@/components/charts/PerformanceChart'
 import { DeleteOptionButton } from '@/components/DeleteOptionButton'
 import { Badge } from '@/components/ui/Badge'
 import { PercentChange } from '@/components/ui/PercentChange'
+import { fetchStockPrice } from '@/lib/fetchOptionPrice'
 import {
   formatContractName,
   formatDate,
@@ -53,6 +54,12 @@ export default async function OptionDetailPage({
   const dte = daysToExpiration(option.expiration_date)
   const held = daysHeld(option.entry_date)
 
+  const stockPrice = await fetchStockPrice(option.ticker)
+  const moneyness =
+    stockPrice != null
+      ? ((stockPrice - option.strike_price) / option.strike_price) * 100
+      : null
+
   const contractName = formatContractName(option)
 
   return (
@@ -90,8 +97,17 @@ export default async function OptionDetailPage({
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-3">
         {[
+          { label: 'Stock Price', value: formatPrice(stockPrice) },
+          {
+            label: 'vs Strike',
+            value: moneyness != null ? (
+              <span className={moneyness >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                {formatPercent(moneyness)}
+              </span>
+            ) : '—',
+          },
           { label: 'Entry Price', value: formatPrice(option.entry_price) },
           { label: 'Current Price', value: formatPrice(currentMidpoint) },
           { label: 'Option %', value: <PercentChange value={optionPct} /> },

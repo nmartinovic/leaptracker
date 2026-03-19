@@ -8,7 +8,7 @@ import { PercentChange } from './ui/PercentChange'
 import { Modal } from './ui/Modal'
 import { AddOptionForm } from './AddOptionForm'
 import { EmptyState } from './ui/EmptyState'
-import { formatContractName, formatDate, formatPrice } from '@/lib/formatters'
+import { formatContractName, formatDate, formatPrice, formatPercent } from '@/lib/formatters'
 
 interface OptionRow {
   id: string
@@ -24,6 +24,8 @@ interface OptionRow {
   option_pct_change: number | null
   spy_pct_change: number | null
   alpha: number | null
+  stock_price: number | null
+  moneyness: number | null
 }
 
 interface DashboardClientProps {
@@ -150,6 +152,8 @@ export function DashboardClient({ options, allTags }: DashboardClientProps) {
             <thead className="bg-gray-50">
               <tr>
                 <SortHeader col="ticker" label="Contract" />
+                <SortHeader col="stock_price" label="Stock" />
+                <SortHeader col="moneyness" label="vs Strike" />
                 <SortHeader col="entry_price" label="Entry" />
                 <SortHeader col="current_midpoint" label="Current" />
                 <SortHeader col="option_pct_change" label="Option %" />
@@ -168,6 +172,14 @@ export function DashboardClient({ options, allTags }: DashboardClientProps) {
                     <Link href={`/options/${opt.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
                       {formatContractName(opt)}
                     </Link>
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">{formatPrice(opt.stock_price)}</td>
+                  <td className="px-4 py-3 tabular-nums">
+                    {opt.moneyness != null ? (
+                      <span className={opt.moneyness >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                        {formatPercent(opt.moneyness)}
+                      </span>
+                    ) : '—'}
                   </td>
                   <td className="px-4 py-3 tabular-nums">{formatPrice(opt.entry_price)}</td>
                   <td className="px-4 py-3 tabular-nums">{formatPrice(opt.current_midpoint)}</td>
