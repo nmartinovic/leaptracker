@@ -42,3 +42,6 @@ next-env.d.ts
 
 #helper
 helper.txt
+
+# Claude local settings (may contain secrets)
+.claude/settings.local.json
