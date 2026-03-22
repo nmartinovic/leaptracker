@@ -25,6 +25,18 @@ export default async function PortfoliosPage() {
         <CreatePortfolioButton />
       </div>
 
+      {/* Auto portfolio — always shown */}
+      <Link
+        href="/portfolios/auto"
+        className="flex items-center justify-between bg-blue-50 rounded-lg border border-blue-200 p-5 hover:shadow-md hover:border-blue-400 transition-all"
+      >
+        <div>
+          <h3 className="font-semibold text-blue-900 mb-1">Auto</h3>
+          <p className="text-sm text-blue-700">All options tagged #auto · updates automatically</p>
+        </div>
+        <span className="text-blue-400 text-lg">→</span>
+      </Link>
+
       {list.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="text-4xl mb-4">📁</div>
