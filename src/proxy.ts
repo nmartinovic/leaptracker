@@ -30,10 +30,11 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes — always accessible
+  // API routes handle their own auth and must not be redirected to /login
   const isPublic =
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||
-    pathname.startsWith('/api/cron/')
+    pathname.startsWith('/api/')
 
   if (!user && !isPublic) {
     const loginUrl = new URL('/login', request.url)
