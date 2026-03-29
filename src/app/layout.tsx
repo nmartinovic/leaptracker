@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { getCurrentUser } from '@/lib/supabase'
+import { LogoutButton } from '@/components/LogoutButton'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -7,7 +9,9 @@ export const metadata: Metadata = {
   description: 'Track options performance over time, benchmarked against SPY',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser()
+
   return (
     <html lang="en">
       <body className="antialiased">
@@ -17,12 +21,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               LeapTracker
             </Link>
             <div className="flex items-center gap-6">
-              <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/portfolios" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                Portfolios
-              </Link>
+              {user && (
+                <>
+                  <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    Dashboard
+                  </Link>
+                  <Link href="/portfolios" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    Portfolios
+                  </Link>
+                  <span className="text-sm text-gray-400">{user.email}</span>
+                  <LogoutButton />
+                </>
+              )}
             </div>
           </div>
         </nav>

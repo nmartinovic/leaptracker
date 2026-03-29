@@ -30,7 +30,7 @@ npm run test:watch
 ```
 src/
   lib/               # All business logic (no UI)
-    supabase.ts      # createAdminClient() — server-only; supabase — browser client
+    supabase.ts      # createAdminClient() — server-only admin; createSupabaseServerClient() + getCurrentUser() — session auth
     database.types.ts  # Hand-written type stub; regenerate with `npx supabase gen types`
     parseOptionSymbol.ts  # OCC symbol parser (pure, fully tested)
     fetchOptionPrice.ts   # yahoo-finance2 wrapper with retry + $0 guard; exports fetchStockPrice()
@@ -46,7 +46,9 @@ src/
     portfolios/[id]/page.tsx     # Portfolio detail
     api/options/route.ts         # GET + POST /api/options
     api/options/[id]/route.ts    # GET + PATCH + DELETE
-    api/options/auto/route.ts    # POST /api/options/auto — auto-add a LEAPS call by ticker symbol
+    api/options/auto/route.ts    # POST /api/options/auto — auto-add a LEAPS call; requires session or CRON_SECRET; no-ops if ticker already tracked
+    api/auth/logout/route.ts     # POST — sign out current user
+    api/admin/claim-data/route.ts  # POST — one-time: assigns all null user_id rows to current user
     api/portfolios/route.ts
     api/portfolios/[id]/route.ts
     api/portfolios/[id]/holdings/route.ts
@@ -105,6 +107,8 @@ NEXT_PUBLIC_SUPABASE_URL=        # from Supabase project Settings > General
 NEXT_PUBLIC_SUPABASE_ANON_KEY=   # from Supabase project Settings > API Keys (publishable key)
 SUPABASE_SERVICE_ROLE_KEY=       # server-only; never expose to browser (secret key)
 CRON_SECRET=                     # any random string; must match Vercel + GitHub Actions secrets
+OWNER_USER_ID=                   # Supabase auth user UUID of the owner; used by cron/auto-add to assign options
+NEXT_PUBLIC_SITE_URL=            # Full production URL e.g. https://leaptracker.vercel.app (used for logout redirect)
 ```
 
 ## Deployment

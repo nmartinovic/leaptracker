@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import { parseYahooOptionUrl } from '@/lib/parseOptionSymbol'
 import { fetchOptionPrice, fetchSpyPrice } from '@/lib/fetchOptionPrice'
 import type { TrackedOption } from '@/lib/database.types'
 
 // GET /api/options — list all tracked options with latest price data
 export async function GET(request: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const db = createAdminClient()
   const { searchParams } = new URL(request.url)
   const tagFilter = searchParams.get('tag')
 
-  let query = db.from('tracked_options').select('*').order('entry_date', { ascending: false })
+  let query = db
+    .from('tracked_options')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('entry_date', { ascending: false })
   if (tagFilter) {
     query = query.contains('tags', [tagFilter])
   }
@@ -66,6 +73,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/options — add a new option to track
 export async function POST(request: NextRequest) {
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await request.json().catch(() => null)
   if (!body) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
@@ -92,11 +102,12 @@ export async function POST(request: NextRequest) {
 
   const db = createAdminClient()
 
-  // Check for duplicate
+  // Check for duplicate (same symbol, same user)
   const { data: existing } = await db
     .from('tracked_options')
     .select('id')
     .eq('yahoo_symbol', parsed.yahoo_symbol)
+    .eq('user_id', user.id)
     .maybeSingle()
 
   if (existing) {
@@ -119,6 +130,7 @@ export async function POST(request: NextRequest) {
     .from('tracked_options')
     .insert({
       ...parsed,
+      user_id: user.id,
       entry_price,
       entry_date: today,
       spy_price_at_entry: spyPrice ?? undefined,

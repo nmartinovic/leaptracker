@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import { computePortfolioTimeSeries, type HoldingWithOption } from '@/lib/computePortfolioTimeSeries'
 import type { PortfolioHolding } from '@/lib/database.types'
 
@@ -8,12 +8,16 @@ type Params = { params: Promise<{ id: string }> }
 // GET /api/portfolios/:id — get portfolio with holdings and performance time series
 export async function GET(_req: NextRequest, { params }: Params) {
   const { id } = await params
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const db = createAdminClient()
 
   const { data: portfolio, error: portfolioError } = await db
     .from('portfolios')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user.id)
     .single()
 
   if (portfolioError || !portfolio) {

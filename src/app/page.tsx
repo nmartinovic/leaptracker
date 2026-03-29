@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import { DashboardClient } from '@/components/DashboardClient'
 import { fetchStockPrice } from '@/lib/fetchOptionPrice'
 import type { TrackedOption } from '@/lib/database.types'
@@ -16,11 +16,13 @@ type OptionWithHistory = TrackedOption & {
 }
 
 export default async function DashboardPage() {
+  const user = await getCurrentUser()
   const db = createAdminClient()
 
   const { data: optionsRaw } = await db
     .from('tracked_options')
     .select(`*, price_history(bid, ask, midpoint, spy_close, date)`)
+    .eq('user_id', user?.id)
     .order('entry_date', { ascending: false })
 
   const options = (optionsRaw ?? []) as OptionWithHistory[]

@@ -3,13 +3,21 @@ import { createAdminClient } from './supabase'
 import { fetchOptionPrice, fetchSpyPrice } from './fetchOptionPrice'
 import { isTradingDay } from './marketHolidays'
 
-type ActiveOption = { id: string; yahoo_symbol: string; expiration_date: string; entry_price_pending: boolean }
+type ActiveOption = {
+  id: string
+  yahoo_symbol: string
+  expiration_date: string
+  entry_date: string
+  entry_price_pending: boolean
+  tags: string[]
+}
 
 export interface CronResult {
   date: string
   fetched: number
   skipped: number
   archived: number
+  auto_closed: number
   errors: string[]
   skippedReason?: string
 }
@@ -23,6 +31,7 @@ export async function cronFetchPrices(): Promise<CronResult> {
     fetched: 0,
     skipped: 0,
     archived: 0,
+    auto_closed: 0,
     errors: [],
   }
 
@@ -36,7 +45,7 @@ export async function cronFetchPrices(): Promise<CronResult> {
   // Fetch all active options
   const { data: options, error: fetchError } = await db
     .from('tracked_options')
-    .select('id, yahoo_symbol, expiration_date, entry_price_pending')
+    .select('id, yahoo_symbol, expiration_date, entry_date, entry_price_pending, tags')
     .eq('is_active', true)
 
   if (fetchError) {
@@ -56,7 +65,7 @@ export async function cronFetchPrices(): Promise<CronResult> {
     result.errors.push('Failed to fetch SPY price')
   }
 
-  // Identify expired options to archive
+  // Identify expired options to archive (past expiration date)
   const toArchive = typedOptions.filter((o) => o.expiration_date < todayIso)
   const activeOptions = typedOptions.filter((o) => o.expiration_date >= todayIso)
 
@@ -74,6 +83,11 @@ export async function cronFetchPrices(): Promise<CronResult> {
       result.archived = toArchive.length
     }
   }
+
+  // Compute the cutoff date for auto-close: entry_date <= today - 366 days
+  const autoCloseCutoff = new Date(today)
+  autoCloseCutoff.setDate(autoCloseCutoff.getDate() - 366)
+  const autoCloseCutoffIso = autoCloseCutoff.toISOString().slice(0, 10)
 
   // Fetch prices concurrently, max 5 at a time to avoid rate limiting
   const limit = pLimit(5)
@@ -115,6 +129,24 @@ export async function cronFetchPrices(): Promise<CronResult> {
           .update({ entry_price: price.midpoint, entry_price_pending: false })
           .eq('id', option.id)
         console.log(`[cron] Backfilled entry_price for ${option.yahoo_symbol}: ${price.midpoint}`)
+      }
+
+      // Item 2: Auto-close #auto options that have been held for more than 366 days
+      const isAutoOption = Array.isArray(option.tags) && option.tags.includes('auto')
+      if (isAutoOption && option.entry_date <= autoCloseCutoffIso) {
+        const { error: closeError } = await db
+          .from('tracked_options')
+          .update({ is_active: false })
+          .eq('id', option.id)
+
+        if (closeError) {
+          result.errors.push(`Failed to auto-close ${option.yahoo_symbol}: ${closeError.message}`)
+        } else {
+          result.auto_closed++
+          console.log(
+            `[cron] Auto-closed ${option.yahoo_symbol} — held since ${option.entry_date} (>366 days), final price: ${price.midpoint}`
+          )
+        }
       }
     })
   )

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import type { TrackedOption, PriceHistory } from '@/lib/database.types'
 import { PerformanceChart } from '@/components/charts/PerformanceChart'
 import { DeleteOptionButton } from '@/components/DeleteOptionButton'
@@ -26,12 +26,14 @@ export default async function OptionDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const user = await getCurrentUser()
   const db = createAdminClient()
 
   const { data: optionRaw, error } = await db
     .from('tracked_options')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user?.id)
     .single()
 
   if (error || !optionRaw) notFound()

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import { CreatePortfolioButton } from '@/components/CreatePortfolioButton'
 import { formatDate } from '@/lib/formatters'
 import type { Portfolio } from '@/lib/database.types'
@@ -9,11 +9,13 @@ type PortfolioWithCount = Portfolio & { portfolio_holdings: Array<unknown> }
 export const dynamic = 'force-dynamic'
 
 export default async function PortfoliosPage() {
+  const user = await getCurrentUser()
   const db = createAdminClient()
 
   const { data: portfoliosRaw } = await db
     .from('portfolios')
     .select('*, portfolio_holdings(count)')
+    .eq('user_id', user?.id)
     .order('created_at', { ascending: false })
 
   const list: PortfolioWithCount[] = (portfoliosRaw ?? []) as PortfolioWithCount[]

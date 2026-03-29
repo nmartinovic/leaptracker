@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import { computePortfolioTimeSeries, type HoldingWithOption } from '@/lib/computePortfolioTimeSeries'
 import type { TrackedOption, PriceHistory } from '@/lib/database.types'
 import { PortfolioChart } from '@/components/charts/PortfolioChart'
@@ -9,12 +9,14 @@ import { formatContractName, formatDate, formatPrice } from '@/lib/formatters'
 export const dynamic = 'force-dynamic'
 
 export default async function AutoPortfolioPage() {
+  const user = await getCurrentUser()
   const db = createAdminClient()
 
   // Fetch all active #auto-tagged options with their full price history
   const { data: optionsRaw } = await db
     .from('tracked_options')
     .select('*, price_history(*)')
+    .eq('user_id', user?.id)
     .contains('tags', ['auto'])
     .eq('is_active', true)
     .order('entry_date', { ascending: true })

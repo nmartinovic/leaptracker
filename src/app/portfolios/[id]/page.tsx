@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import { computePortfolioTimeSeries, type HoldingWithOption } from '@/lib/computePortfolioTimeSeries'
 import type { Portfolio, PortfolioHolding, TrackedOption } from '@/lib/database.types'
 import { PortfolioChart } from '@/components/charts/PortfolioChart'
@@ -20,12 +20,14 @@ export default async function PortfolioDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const user = await getCurrentUser()
   const db = createAdminClient()
 
   const { data: portfolioRaw, error } = await db
     .from('portfolios')
     .select('*')
     .eq('id', id)
+    .eq('user_id', user?.id)
     .single()
 
   if (error || !portfolioRaw) notFound()
@@ -66,6 +68,7 @@ export default async function PortfolioDetailPage({
   const { data: allOptionsRaw } = await db
     .from('tracked_options')
     .select('*')
+    .eq('user_id', user?.id)
     .eq('is_active', true)
     .order('entry_date', { ascending: false })
   const allOptions: TrackedOption[] = (allOptionsRaw ?? []) as TrackedOption[]

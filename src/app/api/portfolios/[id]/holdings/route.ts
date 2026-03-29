@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase'
+import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 
 type Params = { params: Promise<{ id: string }> }
 
 // POST /api/portfolios/:id/holdings — add a holding to a portfolio
 export async function POST(request: NextRequest, { params }: Params) {
   const { id: portfolio_id } = await params
+  const user = await getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await request.json().catch(() => null)
 
   if (!body) {
@@ -29,17 +32,24 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const db = createAdminClient()
 
-  // Verify portfolio exists
-  const { data: portfolio } = await db.from('portfolios').select('id').eq('id', portfolio_id).single()
+  // Verify portfolio exists and belongs to this user
+  const { data: portfolio } = await db
+    .from('portfolios')
+    .select('id')
+    .eq('id', portfolio_id)
+    .eq('user_id', user.id)
+    .single()
+
   if (!portfolio) {
     return NextResponse.json({ error: 'Portfolio not found' }, { status: 404 })
   }
 
-  // Verify option exists and is active
+  // Verify option exists, is active, and belongs to this user
   const { data: option } = await db
     .from('tracked_options')
     .select('id, is_active')
     .eq('id', option_id)
+    .eq('user_id', user.id)
     .single()
 
   if (!option) {
