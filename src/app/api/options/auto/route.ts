@@ -14,16 +14,20 @@ export async function POST(request: NextRequest) {
   // Determine user_id: session takes priority, then fall back to CRON_SECRET + OWNER_USER_ID
   let userId: string | null = null
 
+  const authHeader = request.headers.get('authorization')
   const sessionUser = await getCurrentUser()
   if (sessionUser) {
     userId = sessionUser.id
   } else {
     const cronSecret = process.env.CRON_SECRET
-    const authHeader = request.headers.get('authorization')
     if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
       userId = process.env.OWNER_USER_ID ?? null
     }
   }
+
+  console.log('cronSecret set:', !!process.env.CRON_SECRET, 'length:', process.env.CRON_SECRET?.length)
+  console.log('authHeader:', authHeader)
+  console.log('owner_user_id set:', !!process.env.OWNER_USER_ID)
 
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
