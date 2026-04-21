@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import { findLeapCallOption } from '@/lib/findLeapOption'
 import { fetchSpyPrice } from '@/lib/fetchOptionPrice'
+import { isTradingDay } from '@/lib/marketHolidays'
 
 // POST /api/options/auto
 // Body: { symbol: "AAPL" }
@@ -99,7 +100,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
-  if (newOption && !leap.price_is_estimated) {
+  if (newOption && isTradingDay(new Date(today))) {
     await db.from('price_history').insert({
       option_id: newOption.id,
       date: today,
