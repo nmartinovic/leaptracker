@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, getCurrentUser } from '@/lib/supabase'
 import { parseYahooOptionUrl } from '@/lib/parseOptionSymbol'
 import { fetchOptionPrice, fetchSpyPrice } from '@/lib/fetchOptionPrice'
+import { isTradingDay } from '@/lib/marketHolidays'
 import type { TrackedOption } from '@/lib/database.types'
 
 // GET /api/options — list all tracked options with latest price data
@@ -143,8 +144,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
-  // Insert initial price history row only if we have real (non-estimated) prices
-  if (priceResult && newOption && !priceResult.price_is_estimated) {
+  // Insert initial price history row only on trading days — weekend/holiday entries
+  // cause chart artifacts because other options have no price data on those dates
+  if (priceResult && newOption && isTradingDay(new Date(today))) {
     await db.from('price_history').insert({
       option_id: newOption.id,
       date: today,
