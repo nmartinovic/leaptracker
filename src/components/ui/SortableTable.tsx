@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { clsx } from 'clsx'
 
 export interface Column<T> {
   key: string
   header: string
   sortable?: boolean
+  getValue?: (row: T) => string | number | null
   className?: string
   render: (row: T) => React.ReactNode
 }
@@ -31,6 +32,25 @@ export function SortableTable<T>({ columns, data, keyFn, emptyMessage }: Sortabl
     }
   }
 
+  const sortedData = useMemo(() => {
+    if (!sortKey) return data
+    const col = columns.find((c) => c.key === sortKey)
+    if (!col?.getValue) return data
+    return [...data].sort((a, b) => {
+      const av = col.getValue!(a)
+      const bv = col.getValue!(b)
+      if (av === null && bv === null) return 0
+      if (av === null) return 1
+      if (bv === null) return -1
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av
+      }
+      return sortDir === 'asc'
+        ? String(av).localeCompare(String(bv))
+        : String(bv).localeCompare(String(av))
+    })
+  }, [data, sortKey, sortDir, columns])
+
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -47,22 +67,24 @@ export function SortableTable<T>({ columns, data, keyFn, emptyMessage }: Sortabl
                 )}
               >
                 {col.header}
-                {col.sortable && sortKey === col.key && (
-                  <span className="ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>
+                {col.sortable && (
+                  <span className="ml-1 inline-block w-3 text-center">
+                    {sortKey === col.key ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  </span>
                 )}
               </th>
             ))}
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-100">
-          {data.length === 0 ? (
+          {sortedData.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-400">
                 {emptyMessage ?? 'No data'}
               </td>
             </tr>
           ) : (
-            data.map((row) => (
+            sortedData.map((row) => (
               <tr key={keyFn(row)} className="hover:bg-gray-50 transition-colors">
                 {columns.map((col) => (
                   <td key={col.key} className={clsx('px-4 py-3', col.className)}>

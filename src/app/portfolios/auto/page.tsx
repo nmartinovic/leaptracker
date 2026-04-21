@@ -4,7 +4,8 @@ import { computePortfolioTimeSeries, type HoldingWithOption } from '@/lib/comput
 import type { TrackedOption, PriceHistory } from '@/lib/database.types'
 import { PortfolioChart } from '@/components/charts/PortfolioChart'
 import { PercentChange } from '@/components/ui/PercentChange'
-import { formatContractName, formatDate, formatPrice } from '@/lib/formatters'
+import { AutoPortfolioTable, type AutoRow } from '@/components/AutoPortfolioTable'
+import { formatPrice } from '@/lib/formatters'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,50 +105,22 @@ export default async function AutoPortfolioPage() {
         <h2 className="text-sm font-semibold text-gray-700 px-4 py-3 border-b border-gray-200">
           Positions ({holdings.length})
         </h2>
-        {holdings.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-gray-400">
-            No #auto options yet. Send a POST to /api/options/auto to add one.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['Contract', 'Entry Price', 'Current Price', '% Change', 'Entry Date', 'Expires'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-50">
-                {holdings.map((h) => {
-                  const latest = h.priceHistory[h.priceHistory.length - 1]
-                  const currentMidpoint = latest?.midpoint ?? null
-                  const pct =
-                    currentMidpoint != null
-                      ? ((currentMidpoint - h.cost_basis) / h.cost_basis) * 100
-                      : null
-
-                  return (
-                    <tr key={h.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">
-                        <Link href={`/options/${h.option_id}`} className="text-blue-600 hover:underline">
-                          {formatContractName(h.option)}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 tabular-nums">{formatPrice(h.cost_basis)}</td>
-                      <td className="px-4 py-3 tabular-nums">{formatPrice(currentMidpoint)}</td>
-                      <td className="px-4 py-3"><PercentChange value={pct} /></td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(h.start_date)}</td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(h.option.expiration_date)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <AutoPortfolioTable
+          rows={holdings.map((h): AutoRow => {
+            const latest = h.priceHistory[h.priceHistory.length - 1]
+            const currentMidpoint = latest?.midpoint ?? null
+            return {
+              id: h.id,
+              option_id: h.option_id,
+              option: h.option,
+              entryPrice: h.cost_basis,
+              currentMidpoint,
+              pct: currentMidpoint != null ? ((currentMidpoint - h.cost_basis) / h.cost_basis) * 100 : null,
+              entryDate: h.start_date,
+              expirationDate: h.option.expiration_date,
+            }
+          })}
+        />
       </div>
     </div>
   )

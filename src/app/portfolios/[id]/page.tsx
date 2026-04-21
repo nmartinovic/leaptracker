@@ -6,11 +6,8 @@ import type { Portfolio, PortfolioHolding, TrackedOption } from '@/lib/database.
 import { PortfolioChart } from '@/components/charts/PortfolioChart'
 import { PercentChange } from '@/components/ui/PercentChange'
 import { AddHoldingModal } from '@/components/AddHoldingModal'
-import {
-  formatContractName,
-  formatDate,
-  formatPrice,
-} from '@/lib/formatters'
+import { PortfolioHoldingsTable, type HoldingRow } from '@/components/PortfolioHoldingsTable'
+import { formatPrice } from '@/lib/formatters'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,60 +136,24 @@ export default async function PortfolioDetailPage({
         <h2 className="text-sm font-semibold text-gray-700 px-4 py-3 border-b border-gray-200">
           Holdings ({holdingsWithData.length})
         </h2>
-        {holdingsWithData.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-gray-400">
-            No holdings yet. Add options to this portfolio.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['Contract', 'Contracts', 'Cost Basis', 'Current Value', '% Change', 'Weight', 'Start Date'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-50">
-                {holdingsWithData.map((h) => {
-                  const latest = h.priceHistory[h.priceHistory.length - 1]
-                  const currentValue = latest?.midpoint ? latest.midpoint * h.quantity * 100 : null
-                  const costTotal = h.cost_basis * h.quantity * 100
-                  const pct =
-                    currentValue != null
-                      ? ((currentValue - costTotal) / costTotal) * 100
-                      : null
-                  const weight =
-                    totalCurrentValue > 0 && currentValue != null
-                      ? (currentValue / totalCurrentValue) * 100
-                      : null
-
-                  return (
-                    <tr key={h.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">
-                        <Link href={`/options/${h.option_id}`} className="text-blue-600 hover:underline">
-                          {formatContractName(h.option)}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 tabular-nums">{h.quantity}</td>
-                      <td className="px-4 py-3 tabular-nums">{formatPrice(costTotal)}</td>
-                      <td className="px-4 py-3 tabular-nums">{formatPrice(currentValue)}</td>
-                      <td className="px-4 py-3"><PercentChange value={pct} /></td>
-                      <td className="px-4 py-3 text-gray-500">
-                        {weight != null ? `${weight.toFixed(1)}%` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                        {formatDate(h.start_date)}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <PortfolioHoldingsTable
+          rows={holdingsWithData.map((h): HoldingRow => {
+            const latest = h.priceHistory[h.priceHistory.length - 1]
+            const currentValue = latest?.midpoint ? latest.midpoint * h.quantity * 100 : null
+            const costTotal = h.cost_basis * h.quantity * 100
+            return {
+              id: h.id,
+              option_id: h.option_id,
+              option: h.option,
+              quantity: h.quantity,
+              costTotal,
+              currentValue,
+              pct: currentValue != null ? ((currentValue - costTotal) / costTotal) * 100 : null,
+              weight: totalCurrentValue > 0 && currentValue != null ? (currentValue / totalCurrentValue) * 100 : null,
+              start_date: h.start_date,
+            }
+          })}
+        />
       </div>
     </div>
   )
