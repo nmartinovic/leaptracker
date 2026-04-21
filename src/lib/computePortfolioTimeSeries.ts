@@ -27,13 +27,6 @@ export function computePortfolioTimeSeries(holdings: HoldingWithOption[]): Portf
   const sortedDates = Array.from(dateSet).sort()
   if (sortedDates.length === 0) return []
 
-  // Compute total initial cost basis (for SPY comparison)
-  // Each contract represents 100 shares
-  const totalCostBasis = holdings.reduce(
-    (sum, h) => sum + h.cost_basis * h.quantity * 100,
-    0
-  )
-
   // Build a lookup: holdingId → date → price history row
   const priceLookup = new Map<string, Map<string, PriceHistory>>()
   for (const holding of holdings) {
@@ -44,33 +37,29 @@ export function computePortfolioTimeSeries(holdings: HoldingWithOption[]): Portf
     priceLookup.set(holding.id, byDate)
   }
 
-  // Find SPY price on the earliest start date for normalization
-  const earliestStart = holdings.reduce(
-    (min, h) => (h.start_date < min ? h.start_date : min),
-    holdings[0].start_date
-  )
-
-  // Find first SPY price on or after earliest start
-  let spyBasePrice: number | null = null
-  for (const date of sortedDates) {
-    if (date < earliestStart) continue
-    for (const holding of holdings) {
-      const ph = priceLookup.get(holding.id)?.get(date)
-      if (ph?.spy_close) {
-        spyBasePrice = ph.spy_close
-        break
+  // Find the SPY base price for each holding: first spy_close on or after that holding's start_date.
+  // This anchors each holding's SPY equivalent to the day it entered the portfolio.
+  const spyBasePricePerHolding = new Map<string, number>()
+  for (const holding of holdings) {
+    outer: for (const date of sortedDates) {
+      if (date < holding.start_date) continue
+      for (const h of holdings) {
+        const ph = priceLookup.get(h.id)?.get(date)
+        if (ph?.spy_close) {
+          spyBasePricePerHolding.set(holding.id, ph.spy_close)
+          break outer
+        }
       }
     }
-    if (spyBasePrice) break
   }
 
   const dataPoints: PortfolioDataPoint[] = []
 
   for (const date of sortedDates) {
-    // Sum portfolio value across all holdings that have started by this date
     let portfolioValue = 0
     let hasSomeData = false
     let spyClose: number | null = null
+    let spyValue = 0
 
     for (const holding of holdings) {
       if (date < holding.start_date) continue
@@ -88,8 +77,19 @@ export function computePortfolioTimeSeries(holdings: HoldingWithOption[]): Portf
 
     if (!hasSomeData || !spyClose) continue
 
-    // SPY equivalent: same initial dollar amount grows with SPY
-    const spyValue = spyBasePrice ? (spyClose / spyBasePrice) * totalCostBasis : totalCostBasis
+    // SPY equivalent: for each holding with price data today, grow its cost basis
+    // by SPY's return since that holding was first added.
+    for (const holding of holdings) {
+      if (date < holding.start_date) continue
+
+      const ph = priceLookup.get(holding.id)?.get(date)
+      if (!ph?.midpoint) continue
+
+      const spyBase = spyBasePricePerHolding.get(holding.id)
+      if (spyBase) {
+        spyValue += (spyClose / spyBase) * holding.cost_basis * holding.quantity * 100
+      }
+    }
 
     dataPoints.push({ date, portfolioValue, spyValue })
   }
