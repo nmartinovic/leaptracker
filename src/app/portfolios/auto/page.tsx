@@ -47,10 +47,8 @@ export default async function AutoPortfolioPage() {
     totalCostBasis > 0 ? ((totalCurrentValue - totalCostBasis) / totalCostBasis) * 100 : null
 
   const spyPct =
-    timeSeries.length >= 2
-      ? ((timeSeries[timeSeries.length - 1].spyValue - timeSeries[0].spyValue) /
-          timeSeries[0].spyValue) *
-        100
+    timeSeries.length >= 2 && totalCostBasis > 0
+      ? ((timeSeries[timeSeries.length - 1].spyValue - totalCostBasis) / totalCostBasis) * 100
       : null
 
   const alpha = totalPct != null && spyPct != null ? totalPct - spyPct : null

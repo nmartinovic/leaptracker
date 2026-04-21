@@ -10,6 +10,8 @@ export interface OptionPriceResult {
   bid: number
   ask: number
   midpoint: number
+  /** true when bid/ask were both 0 and we fell back to last-traded price (market closed) */
+  price_is_estimated: boolean
 }
 
 async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
@@ -49,6 +51,7 @@ export async function fetchOptionPrice(yahooSymbol: string): Promise<OptionPrice
           bid: lastPrice,
           ask: lastPrice,
           midpoint: lastPrice,
+          price_is_estimated: true,
         }
       }
       console.warn(`[fetchOptionPrice] No price data for ${yahooSymbol} — skipping`)
@@ -60,6 +63,7 @@ export async function fetchOptionPrice(yahooSymbol: string): Promise<OptionPrice
       bid,
       ask,
       midpoint: (bid + ask) / 2,
+      price_is_estimated: false,
     }
   } catch (err) {
     console.error(`[fetchOptionPrice] Failed to fetch ${yahooSymbol}:`, err)

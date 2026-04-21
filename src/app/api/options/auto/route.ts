@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
-  if (newOption) {
+  if (newOption && !leap.price_is_estimated) {
     await db.from('price_history').insert({
       option_id: newOption.id,
       date: today,

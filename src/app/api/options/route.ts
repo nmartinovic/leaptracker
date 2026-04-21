@@ -143,8 +143,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
-  // Insert initial price history row if we got a price
-  if (priceResult && newOption) {
+  // Insert initial price history row only if we have real (non-estimated) prices
+  if (priceResult && newOption && !priceResult.price_is_estimated) {
     await db.from('price_history').insert({
       option_id: newOption.id,
       date: today,
