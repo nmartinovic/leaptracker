@@ -26,12 +26,24 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  console.log('cronSecret set:', !!process.env.CRON_SECRET, 'length:', process.env.CRON_SECRET?.length)
-  console.log('authHeader:', authHeader)
-  console.log('owner_user_id set:', !!process.env.OWNER_USER_ID)
-
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Return a descriptive reason so callers can diagnose auth failures
+    const cronSecret = process.env.CRON_SECRET
+    const ownerUserId = process.env.OWNER_USER_ID
+    let reason = 'No valid session'
+    if (authHeader) {
+      if (!cronSecret) {
+        reason = 'CRON_SECRET env var is not set on the server'
+      } else if (authHeader !== `Bearer ${cronSecret}`) {
+        reason = `Bearer token does not match CRON_SECRET (token length: ${authHeader.replace('Bearer ', '').length}, expected length: ${cronSecret.length})`
+      } else if (!ownerUserId) {
+        reason = 'CRON_SECRET matched but OWNER_USER_ID env var is not set'
+      }
+    } else {
+      reason = 'No session and no Authorization header provided'
+    }
+    console.log(`[/api/options/auto] Auth failed: ${reason}`)
+    return NextResponse.json({ error: 'Unauthorized', reason }, { status: 401 })
   }
 
   const body = await request.json().catch(() => null)
